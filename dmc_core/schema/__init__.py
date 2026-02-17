@@ -21,19 +21,21 @@ import warnings
 from decision_schema.packet_v2 import PacketV2
 from decision_schema.types import (
     Action,
-    FinalAction,  # Alias for FinalDecision
     FinalDecision,
     MismatchInfo,
     Proposal,
-    TradeProposal,  # Alias for Proposal
 )
+
+# Aliases for backward compatibility (decision-schema 0.2 has no TradeProposal/FinalAction)
+FinalAction = FinalDecision
+TradeProposal = Proposal
 
 __all__ = [
     "Action",
     "Proposal",
-    "TradeProposal",  # Backward compat alias
+    "TradeProposal",
     "FinalDecision",
-    "FinalAction",  # Backward compat alias
+    "FinalAction",
     "MismatchInfo",
     "PacketV2",
 ]

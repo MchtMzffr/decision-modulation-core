@@ -1,31 +1,13 @@
-"""DMC: Risk modulation (guards + modulator)."""
+"""DMC: Risk modulation (generic guards + modulator)."""
 
-from dmc_core.dmc.risk_policy import RiskPolicy
-from dmc_core.dmc.guards import (
-    staleness_guard,
-    liquidity_guard,
-    spread_guard,
-    exposure_guard,
-    inventory_guard,
-    cancel_rate_guard,
-    daily_loss_guard,
-    error_rate_guard,
-    circuit_breaker_guard,
-    adverse_selection_guard,
-)
+from dmc_core.dmc.policy import GuardPolicy
 from dmc_core.dmc.modulator import modulate
 
+# Legacy (domain-specific) still available from dmc_core.dmc.guards (old) and risk_policy
+from dmc_core.dmc.risk_policy import RiskPolicy
+
 __all__ = [
-    "RiskPolicy",
-    "staleness_guard",
-    "liquidity_guard",
-    "spread_guard",
-    "exposure_guard",
-    "inventory_guard",
-    "cancel_rate_guard",
-    "daily_loss_guard",
-    "error_rate_guard",
-    "circuit_breaker_guard",
-    "adverse_selection_guard",
+    "GuardPolicy",
     "modulate",
+    "RiskPolicy",
 ]

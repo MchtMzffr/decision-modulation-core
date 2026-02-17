@@ -1,219 +1,150 @@
-"""DMC: Apply guards and produce final action (possibly modified/override)."""
+"""
+DMC: Apply generic guards and produce FinalDecision. Domain-agnostic.
+
+INVARIANT 3: Guard order is fixed (see guards/__init__.py GUARD_ORDER).
+INVARIANT 4: On exception → fail-closed (allowed=False, action=policy.fail_closed_action).
+"""
 
 from __future__ import annotations
 
-from dmc_core.schema import Action, TradeProposal, FinalAction, MismatchInfo
-from dmc_core.dmc.risk_policy import RiskPolicy
-from dmc_core.dmc.guards import (
-    staleness_guard,
-    liquidity_guard,
-    spread_guard,
-    exposure_guard,
-    inventory_guard,
-    cancel_rate_guard,
-    daily_loss_guard,
-    error_rate_guard,
-    circuit_breaker_guard,
-    adverse_selection_guard,
-    adverse_selection_ticks_guard,
-    sigma_spike_guard,
-    cost_guard,
+import logging
+
+from decision_schema.types import Action, FinalDecision, MismatchInfo, Proposal
+
+from dmc_core.dmc.policy import GuardPolicy
+from dmc_core.dmc.guards_generic import (
+    GUARD_ORDER,
     ops_health_guard,
+    staleness_guard,
+    error_rate_guard,
+    rate_limit_guard,
+    circuit_breaker_guard,
+    cooldown_guard,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def modulate(
-    proposal: TradeProposal,
-    policy: RiskPolicy,
+    proposal: Proposal,
+    policy: GuardPolicy,
     context: dict,
-) -> tuple[FinalAction, MismatchInfo]:
+) -> tuple[FinalDecision, MismatchInfo]:
     """
-    Apply all guards. On first fail: override to HOLD or FLATTEN/CANCEL_ALL/STOP
-    and set mismatch. Otherwise pass through (possibly clamp size).
-    
-    Supports private policy override via dmc_core._private.policy.override_policy.
-    On private hook error: fail-closed (safe defaults).
+    Apply guards in fixed order. First failure → override to fail_closed_action
+    and return (FinalDecision(allowed=False), MismatchInfo). Otherwise pass through.
+
+    Context keys (generic): now_ms, last_event_ts_ms, ops_deny_actions, ops_state,
+    ops_cooldown_until_ms, errors_in_window, steps_in_window, rate_limit_events,
+    recent_failures, cooldown_until_ms.
     """
-    # Try private policy override
-    policy = _apply_private_policy_override(policy, context)
-    
+    try:
+        return _modulate_impl(proposal, policy, context)
+    except Exception as e:
+        logger.warning("DMC modulate exception, fail-closed: %s", type(e).__name__)
+        return _fail_closed(policy), MismatchInfo(
+            flags=["modulate_exception"],
+            reason_codes=[type(e).__name__],
+        )
+
+
+def _fail_closed(policy: GuardPolicy) -> FinalDecision:
+    """INVARIANT 4: allowed=False, action in {HOLD, STOP}."""
+    action = policy.fail_closed_action
+    if action not in (Action.HOLD, Action.STOP):
+        action = Action.HOLD
+    return FinalDecision(allowed=False, action=action, reasons=["fail_closed"])
+
+
+def _modulate_impl(
+    proposal: Proposal,
+    policy: GuardPolicy,
+    context: dict,
+) -> tuple[FinalDecision, MismatchInfo]:
+    now_ms = context.get("now_ms", 0)
+    last_event_ts_ms = context.get("last_event_ts_ms", now_ms)
     mismatch_flags: list[str] = []
     reason_codes: list[str] = []
 
-    now_ms = context.get("now_ms", 0)
-    last_event_ts_ms = context.get("last_event_ts_ms", now_ms)
-    depth = context.get("depth", 0.0)
-    spread_bps = context.get("spread_bps", 0.0)
-    current_total_exposure_usd = context.get("current_total_exposure_usd", 0.0)
-    abs_inventory = context.get("abs_inventory", 0.0)
-
-    # FLATTEN only when there is a position; else HOLD (avoid spurious cancel)
-    if proposal.action == Action.FLATTEN and abs_inventory == 0:
-        return FinalAction(action=Action.HOLD), MismatchInfo(
-            flags=["flatten_no_position"],
-            reason_codes=["no_inventory_to_flatten"],
-        )
-    cancels_in_window = context.get("cancels_in_window", 0)
-    daily_realized_pnl_usd = context.get("daily_realized_pnl_usd", 0.0)
-    errors_in_window = context.get("errors_in_window", 0)
-    steps_in_window = context.get("steps_in_window", 1)
-    recent_failures = context.get("recent_failures", 0)
-    adverse_selection_avg = context.get("adverse_selection_avg", 0.0)
-    sigma_spike_z = context.get("sigma_spike_z", 0.0)
-    cost_ticks = context.get("cost_ticks", 0.0)
-    tp_ticks = context.get("tp_ticks", 1.0)
-
-    # Ops-health guard (early check - operational safety)
-    ops_deny_actions = context.get("ops_deny_actions")
-    ops_state = context.get("ops_state")
-    ops_cooldown_until_ms = context.get("ops_cooldown_until_ms")
-    ok, code = ops_health_guard(ops_deny_actions, ops_state, ops_cooldown_until_ms, now_ms)
+    # 1. ops_health
+    ok, code = ops_health_guard(
+        context.get("ops_deny_actions"),
+        context.get("ops_state"),
+        context.get("ops_cooldown_until_ms"),
+        now_ms,
+    )
     if not ok:
         mismatch_flags.append("ops_health")
         reason_codes.append(code)
-        # Ops-health failure → STOP (most severe)
-        return FinalAction(action=Action.STOP), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
 
-    # Staleness
+    # 2. staleness
     ok, code = staleness_guard(last_event_ts_ms, now_ms, policy.staleness_ms)
     if not ok:
         mismatch_flags.append("staleness")
         reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
 
-    # Liquidity
-    ok, code = liquidity_guard(depth, policy.min_depth)
-    if not ok:
-        mismatch_flags.append("liquidity")
-        reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Spread
-    ok, code = spread_guard(spread_bps, policy.max_spread_bps)
-    if not ok:
-        mismatch_flags.append("spread")
-        reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Exposure
-    ok, code = exposure_guard(current_total_exposure_usd, policy.max_total_exposure_usd)
-    if not ok:
-        mismatch_flags.append("exposure")
-        reason_codes.append(code)
-        return FinalAction(action=Action.FLATTEN), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Inventory
-    ok, code = inventory_guard(abs_inventory, policy.max_abs_inventory)
-    if not ok:
-        mismatch_flags.append("inventory")
-        reason_codes.append(code)
-        return FinalAction(action=Action.FLATTEN), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Cancel rate (throttle: caller should use policy.throttle_refresh_ms for next refresh)
-    ok, code = cancel_rate_guard(cancels_in_window, policy.cancel_rate_limit)
-    if not ok:
-        mismatch_flags.append("cancel_rate")
-        reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(
-            flags=mismatch_flags,
-            reason_codes=reason_codes,
-            throttle_refresh_ms=getattr(policy, "throttle_refresh_ms", 1500),
-        )
-
-    # Daily loss
-    ok, code = daily_loss_guard(daily_realized_pnl_usd, policy.daily_loss_stop_usd)
-    if not ok:
-        mismatch_flags.append("daily_loss")
-        reason_codes.append(code)
-        return FinalAction(action=Action.STOP), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Error rate
-    ok, code = error_rate_guard(errors_in_window, steps_in_window, policy.error_rate_max)
+    # 3. error_rate
+    ok, code = error_rate_guard(
+        context.get("errors_in_window", 0),
+        context.get("steps_in_window", 1),
+        policy.max_error_rate,
+    )
     if not ok:
         mismatch_flags.append("error_rate")
         reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
 
-    # Circuit breaker
-    ok, code = circuit_breaker_guard(recent_failures, policy.circuit_breaker_failures)
+    # 4. rate_limit
+    ok, code = rate_limit_guard(
+        context.get("rate_limit_events", 0),
+        policy.rate_limit_events_max,
+    )
+    if not ok:
+        mismatch_flags.append("rate_limit")
+        reason_codes.append(code)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
+
+    # 5. circuit_breaker
+    ok, code = circuit_breaker_guard(
+        context.get("recent_failures", 0),
+        policy.circuit_breaker_failures,
+    )
     if not ok:
         mismatch_flags.append("circuit_breaker")
         reason_codes.append(code)
-        return FinalAction(action=Action.STOP), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
 
-    # Adverse selection: ticks-based (15/60s) when available, else legacy
-    adv15 = context.get("adverse_15_ticks")
-    adv60 = context.get("adverse_60_ticks")
-    if adv15 is not None and adv60 is not None:
-        max15 = getattr(policy, "adv15_max_ticks", 1.0)
-        max60 = getattr(policy, "adv60_max_ticks", 2.0)
-        ok, code = adverse_selection_ticks_guard(adv15, adv60, max15, max60)
-    else:
-        adverse_max = getattr(policy, "adverse_selection_max", 0.005)
-        ok, code = adverse_selection_guard(adverse_selection_avg, adverse_max)
+    # 6. cooldown
+    ok, code = cooldown_guard(context.get("cooldown_until_ms"), now_ms)
     if not ok:
-        mismatch_flags.append("adverse_selection")
+        mismatch_flags.append("cooldown")
         reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
+        return _override_decision(proposal, policy, mismatch_flags, reason_codes)
 
-    # Vol spike (short vs long sigma)
-    z_max = getattr(policy, "sigma_spike_z_max", 2.5)
-    ok, code = sigma_spike_guard(sigma_spike_z, z_max)
-    if not ok:
-        mismatch_flags.append("sigma_spike")
-        reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # Cost gate (tp must exceed cost + min profit)
-    policy_cost = getattr(policy, "cost_ticks", 1.0)
-    min_profit = getattr(policy, "min_profit_ticks", 1.0)
-    ok, code = cost_guard(tp_ticks, policy_cost, min_profit)
-    if not ok:
-        mismatch_flags.append("cost")
-        reason_codes.append(code)
-        return FinalAction(action=Action.HOLD), MismatchInfo(flags=mismatch_flags, reason_codes=reason_codes)
-
-    # All passed: pass through (clamp size to policy if QUOTE)
-    if proposal.action == Action.QUOTE and proposal.size_usd is not None:
-        size_usd = min(proposal.size_usd, policy.max_per_market_usd)
-        return (
-            FinalAction(
-                action=Action.QUOTE,
-                bid_quote=proposal.bid_quote,
-                ask_quote=proposal.ask_quote,
-                size_usd=size_usd,
-                post_only=proposal.post_only,
-            ),
-            MismatchInfo(),
-        )
+    # All passed
     return (
-        FinalAction(
+        FinalDecision(
             action=proposal.action,
-            bid_quote=proposal.bid_quote,
-            ask_quote=proposal.ask_quote,
-            size_usd=proposal.size_usd,
-            post_only=proposal.post_only,
+            allowed=True,
+            reasons=proposal.reasons or [],
         ),
         MismatchInfo(),
     )
 
 
-def _apply_private_policy_override(policy: RiskPolicy, context: dict) -> RiskPolicy:
-    """
-    Private policy hook: import from dmc_core._private.policy if exists.
-    
-    On ImportError: silent fallback (expected).
-    On runtime exception: fail-closed (return original policy).
-    """
-    try:
-        from dmc_core._private.policy import override_policy
-        return override_policy(policy, context)
-    except ImportError:
-        # Private hook not available - silent fallback (expected)
-        return policy
-    except Exception as e:
-        # Private hook runtime error - fail-closed
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"🔒 Private DMC policy hook error, using public defaults: {type(e).__name__}")
-        return policy  # Return original policy (fail-closed)
+def _override_decision(
+    proposal: Proposal,
+    policy: GuardPolicy,
+    flags: list[str],
+    reason_codes: list[str],
+) -> tuple[FinalDecision, MismatchInfo]:
+    action = policy.fail_closed_action
+    if action not in (Action.HOLD, Action.STOP):
+        action = Action.HOLD
+    mi = MismatchInfo(flags=flags, reason_codes=reason_codes)
+    return (
+        FinalDecision(action=action, allowed=False, reasons=reason_codes, mismatch=mi),
+        mi,
+    )
