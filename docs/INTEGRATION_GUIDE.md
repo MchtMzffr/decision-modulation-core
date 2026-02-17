@@ -60,14 +60,14 @@ from dmc_core.dmc.risk_policy import RiskPolicy
 
 # Update ops-health signal
 state = OpsState()
-# ... record events ...
+# ... record events (errors, rate limits, reconnects) ...
 signal = update_kill_switch(state, OpsPolicy(), now_ms)
 
 # Add to DMC context
 context = {
     "now_ms": now_ms,
-    "depth": 100.0,
-    "spread_bps": 400.0,
+    "error_count": 5,
+    "latency_ms": 100,
     # ... other context ...
 }
 context.update(signal.to_context())  # Adds ops_deny_actions, ops_state, etc.
@@ -99,5 +99,6 @@ The ops-health guard checks:
 - [ ] Replace imports from `dmc_core.schema` → `decision_schema`
 - [ ] Update tests to use generic Action values and params dict
 - [ ] Integrate ops-health-core signals into DMC context
+- [ ] Replace "Market Decision Model" → "proposal generator" in documentation
 
 See `decision-schema/docs/DEPRECATION_PLAN.md` for detailed migration guide.

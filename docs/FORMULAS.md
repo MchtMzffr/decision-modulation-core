@@ -10,104 +10,62 @@ pass = (now_ms - last_event_ts_ms) <= staleness_ms
 
 If `now_ms - last_event_ts_ms > staleness_ms` → fail with reason `staleness_exceeded`.
 
-### Liquidity Guard
+### Rate Limit Guard
 
 ```
-pass = depth >= min_depth
+pass = rate_limit_events_in_window < max_rate_limit_events
 ```
 
-If `depth < min_depth` → fail with reason `liquidity_low`.
+If `rate_limit_events_in_window >= max_rate_limit_events` → fail with reason `rate_limit_exceeded`.
 
-### Spread Guard
+### Error Budget Guard
 
 ```
-pass = spread_bps <= max_spread_bps
+error_rate = errors_in_window / steps_in_window
+pass = error_rate <= max_error_rate
 ```
 
-If `spread_bps > max_spread_bps` → fail with reason `spread_wide`.
+If `error_rate > max_error_rate` → fail with reason `error_rate_high`.
 
 ### Exposure Guard
 
 ```
-pass = current_total_exposure_usd <= max_total_exposure_usd
+pass = current_total_exposure <= max_total_exposure
 ```
 
-If `current_total_exposure_usd > max_total_exposure_usd` → fail with reason `exposure_cap`, override to `FLATTEN`.
+If `current_total_exposure > max_total_exposure` → fail with reason `exposure_cap`, override to `EXIT`.
 
-### Inventory Guard
-
-```
-pass = abs_inventory <= max_abs_inventory
-```
-
-If `abs_inventory > max_abs_inventory` → fail with reason `inventory_cap`, override to `FLATTEN`.
-
-### Cancel Rate Guard
+### Cooldown Guard
 
 ```
-pass = cancels_in_window < cancel_rate_limit
+pass = (now_ms >= cooldown_until_ms) AND (streak_count < streak_cooldown_steps)
 ```
 
-If `cancels_in_window >= cancel_rate_limit` → fail with reason `cancel_rate_throttle`, set `throttle_refresh_ms`.
+If in cooldown or streak exceeded → fail with reason `cooldown_active` or `streak_cooldown`, override to `HOLD`.
+
+### Latency Guard
+
+```
+pass = latency_ms <= max_latency_ms
+```
+
+If `latency_ms > max_latency_ms` → fail with reason `latency_high`.
 
 ### Daily Loss Guard
 
 ```
-pass = daily_realized_pnl_usd > -abs(daily_loss_stop_usd)
+pass = daily_realized_pnl > -abs(daily_loss_stop)
 ```
 
-If `daily_realized_pnl_usd <= -abs(daily_loss_stop_usd)` → fail with reason `daily_loss_stop`, override to `STOP`.
+If `daily_realized_pnl <= -abs(daily_loss_stop)` → fail with reason `daily_loss_stop`, override to `STOP`.
 
-### Error Rate Guard
-
-```
-error_rate = errors_in_window / steps_in_window
-pass = error_rate <= error_rate_max
-```
-
-If `error_rate > error_rate_max` → fail with reason `error_rate_high`.
-
-### Circuit Breaker Guard
+### Drawdown Guard
 
 ```
-pass = recent_failures < circuit_breaker_failures
+pass = current_drawdown <= max_drawdown_stop
 ```
 
-If `recent_failures >= circuit_breaker_failures` → fail with reason `circuit_breaker`, override to `STOP`.
-
-### Adverse Selection Guard (Legacy)
-
-```
-pass = adverse_selection_avg <= adverse_selection_max
-```
-
-If `adverse_selection_avg > adverse_selection_max` → fail with reason `adverse_selection_high`.
-
-### Adverse Selection Ticks Guard
-
-```
-pass = (adv15_ticks <= max15_ticks) AND (adv60_ticks <= max60_ticks)
-```
-
-If `adv15_ticks > max15_ticks` → fail with reason `adverse_selection_high_15`.  
-If `adv60_ticks > max60_ticks` → fail with reason `adverse_selection_high_60`.
-
-### Sigma Spike Guard
-
-```
-pass = z <= z_max
-```
-
-If `z > z_max` → fail with reason `sigma_spike`.
-
-### Cost Guard
-
-```
-required_tp = ceil(cost_ticks + min_profit_ticks)
-pass = tp_ticks >= required_tp
-```
-
-If `tp_ticks < required_tp` → fail with reason `cost_insufficient`.
+If `current_drawdown > max_drawdown_stop` → fail with reason `drawdown_stop`, override to `STOP`.
 
 ### Ops-Health Guard
 
@@ -125,45 +83,51 @@ If `now_ms < ops_cooldown_until_ms` → fail with reason `ops_cooldown_active`, 
 
 1. **Ops-health guard** (first - operational safety)
 2. Staleness guard
-3. Liquidity guard
-4. Spread guard
+3. Rate limit guard
+4. Error budget guard
 5. Exposure guard
-6. Inventory guard
-7. Cancel rate guard
+6. Cooldown guard
+7. Latency guard
 8. Daily loss guard
-9. Error rate guard
-10. Circuit breaker guard
-11. Adverse selection guards
-12. Sigma spike guard
-13. Cost guard (last)
+9. Drawdown guard
+10. (Additional domain-specific guards)
 
 ### Action Override Rules
 
-- **HOLD**: Most guards (staleness, liquidity, spread, etc.)
-- **FLATTEN**: Exposure/inventory limits (when position exists)
-- **STOP**: Daily loss, circuit breaker, ops-health RED
+- **HOLD**: Most guards (staleness, rate limits, error budgets, cooldowns)
+- **EXIT**: Exposure/resource limits (when resource is allocated)
+- **STOP**: Daily loss, drawdown, ops-health RED
 
-### Size Clamping
+### Parameter Clamping
 
 If proposal passes all guards and `action == ACT`:
 
 ```
-size_usd = min(proposal.size_usd, policy.max_per_market_usd)
+clamped_value = min(proposal.params.get("value", 0), policy.max_value)
 ```
 
 ## Generic Metrics (Reference)
 
-### Markout
-
-```
-markout = mid_after_fill - fill_price
-```
-
-### Adverse Selection (Ticks)
-
-```
-adverse_15_ticks = mean(markout_ticks) for fills within 15s window
-adverse_60_ticks = mean(markout_ticks) for fills within 60s window
-```
-
 These are generic definitions; actual computation is domain-specific.
+
+### Error Rate
+
+```
+error_rate = errors_in_window / steps_in_window
+```
+
+### Latency Percentiles
+
+```
+p50_latency = percentile(latency_samples, 50)
+p95_latency = percentile(latency_samples, 95)
+p99_latency = percentile(latency_samples, 99)
+```
+
+### Health Score (from ops-health-core)
+
+```
+score = 1 - (w1*p_err + w2*p_rate_limit + w3*p_reconnect + w4*p_latency)
+```
+
+Where `p_*` are normalized penalty factors [0, 1].
