@@ -59,6 +59,16 @@ DMC enables risk-aware decision modulation in various domains:
 - **Guards**: Exposure limits, drawdown limits, adverse selection, rate limits
 - **FinalDecision**: Execute trade or hold/flatten/stop
 
+## Example Domain: Market Microstructure (Optional Reference)
+
+For reference, here's how DMC applies to market microstructure scenarios:
+
+- **Proposal**: Execute trades (`ACT`) with bid/ask quotes
+- **Guards**: Spread limits, depth requirements, exposure caps, adverse selection thresholds
+- **FinalDecision**: Execute trade (`ACT`) or hold/flatten (`EXIT`)/stop (`STOP`)
+
+**Note**: This is just one example domain. DMC is generic and works for any domain that requires risk-aware decision modulation.
+
 ## Core Concepts
 
 ### Guards
