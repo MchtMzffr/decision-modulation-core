@@ -1,3 +1,3 @@
 """Decision Modulation Core: MDM (decision engine) + DMC (risk modulation)."""
 
-__version__ = "0.1.0"
+from dmc_core.version import __version__

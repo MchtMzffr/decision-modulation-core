@@ -35,12 +35,15 @@ __all__ = [
     "PacketV2",
 ]
 
-# Emit deprecation warning in v0.3+
-from decision_schema.version import __version__
-version_parts = __version__.split(".")
-if len(version_parts) >= 2:
-    minor = int(version_parts[1])
-    if minor >= 3:
+# Emit deprecation warning when DMC version >= 0.3 (DMC-owned sunset policy)
+try:
+    from dmc_core.version import __version__ as _dmc_version
+except ImportError:
+    _dmc_version = "0.1.0"
+_parts = _dmc_version.split(".")
+if len(_parts) >= 2:
+    _minor = int(_parts[1])
+    if _minor >= 3:
         warnings.warn(
             "Importing from dmc_core.schema is deprecated. "
             "Import directly from decision_schema instead. "

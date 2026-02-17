@@ -80,4 +80,4 @@ Guards are applied in deterministic order (fail-fast). First guard failure stops
 On any exception or guard failure:
 - `final_decision.action` is set to `Action.HOLD` or `Action.STOP`
 - `mismatch.flags` contains failure reason codes
-- `PacketV2` includes guard evaluation trace
+- The integration layer should record guard evaluation results into `PacketV2.external` or context passed to the trace
