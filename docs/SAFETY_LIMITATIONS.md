@@ -4,36 +4,36 @@
 
 DMC is a **risk-aware decision layer**, not a complete risk management system. Important limitations:
 
-### 1. No Guarantee of Profitability
+### 1. No Guarantee of Positive Outcomes
 
-DMC does not guarantee profitable trading. It only ensures proposals meet operational and risk constraints. A proposal that passes all guards may still result in losses.
+DMC does not guarantee positive outcomes. It only ensures proposals meet operational and risk constraints. A proposal that passes all guards may still result in negative outcomes depending on the domain.
 
-### 2. No Market Regime Detection
+### 2. No Regime Detection
 
-DMC guards check individual proposal/context pairs. It does not detect broader market regime changes (e.g., flash crashes, market manipulation). Downstream systems should implement regime detection.
+DMC guards check individual proposal/context pairs. It does not detect broader system regime changes (e.g., sudden state changes, external disruptions). Downstream systems should implement regime detection if needed.
 
-### 3. No Fill Guarantee
+### 3. No Execution Guarantee
 
-DMC does not guarantee fills. Even if a QUOTE proposal passes all guards, execution may fail due to:
-- Market moves before order reaches exchange
-- Exchange rejections
+DMC does not guarantee successful execution. Even if an `ACT` proposal passes all guards, execution may fail due to:
+- State changes before action reaches executor
+- Executor rejections
 - Network latency
-- Partial fills
+- Partial execution
 
-### 4. No Adverse Selection Prevention
+### 4. No Quality Prevention
 
-DMC monitors adverse selection (`adv15_max_ticks`, `adv60_max_ticks`) but cannot prevent it. It can only trigger cooldowns after poor fills are detected. Fill quality depends on:
+DMC monitors execution quality metrics but cannot prevent poor execution quality. It can only trigger cooldowns after poor execution is detected. Execution quality depends on:
 - Execution latency
-- Market microstructure
-- Order placement strategy
+- System state
+- Action placement strategy
 
-### 5. No Exchange-Specific Guarantees
+### 5. No Domain-Specific Guarantees
 
 DMC is generic and does not account for:
-- Exchange-specific order types
-- Exchange-specific risk limits
-- Exchange-specific fee structures
-- Exchange-specific rate limits (beyond generic ops-health guard)
+- Domain-specific action types
+- Domain-specific risk limits
+- Domain-specific cost structures
+- Domain-specific rate limits (beyond generic ops-health guard)
 
 ### 6. Context Completeness Assumption
 
@@ -42,22 +42,22 @@ DMC assumes context is complete and accurate. If context is missing or stale:
 - Guards may fail incorrectly
 - Mismatch flags may be misleading
 
-### 7. No Position Management
+### 7. No State Management
 
-DMC does not manage positions. It only modulates proposals. Downstream systems must:
-- Track positions
-- Handle partial fills
-- Manage position lifecycle
+DMC does not manage system state. It only modulates proposals. Downstream systems must:
+- Track state
+- Handle partial execution
+- Manage state lifecycle
 - Handle position reconciliation
 
-### 8. No Order Lifecycle Management
+### 8. No Action Lifecycle Management
 
-DMC does not manage order lifecycle. Downstream systems must:
-- Send orders
-- Track order status
+DMC does not manage action lifecycle. Downstream systems must:
+- Execute actions
+- Track action status
 - Handle cancellations
 - Handle replacements
-- Handle fills
+- Handle execution results
 
 ### 9. Policy Configuration Responsibility
 
@@ -67,11 +67,11 @@ DMC thresholds are configurable but not validated. Users must:
 - Test guard boundaries
 - Monitor guard triggers
 
-### 10. No Backtesting Guarantee
+### 10. No Simulation Guarantee
 
-DMC guards are designed for live trading. Backtesting may not accurately reflect guard behavior if:
+DMC guards are designed for live execution. Simulation/testing may not accurately reflect guard behavior if:
 - Context is simulated (may not match live)
-- Market data is historical (may not reflect live microstructure)
+- Data is historical (may not reflect live conditions)
 - Execution is simulated (may not reflect live latency)
 
 ## What DMC DOES Provide
@@ -85,19 +85,19 @@ DMC guards are designed for live trading. Backtesting may not accurately reflect
 ## Recommendations
 
 1. **Use DMC as one layer** in a multi-layer risk system
-2. **Implement downstream risk layers** (exchange-specific, position management, etc.)
+2. **Implement downstream risk layers** (domain-specific, state management, etc.)
 3. **Monitor guard triggers** to tune thresholds
-4. **Test guard boundaries** before live trading
+4. **Test guard boundaries** before live execution
 5. **Validate context completeness** before calling modulate()
-6. **Implement fill quality monitoring** separately from DMC
+6. **Implement execution quality monitoring** separately from DMC
 7. **Use private policy hook** for proprietary risk policies (keep public code generic)
 
 ## When NOT to Use DMC
 
-- If you need exchange-specific risk management (use exchange APIs)
-- If you need position management (use a position manager)
-- If you need order lifecycle management (use an execution engine)
-- If you need market regime detection (use a regime detector)
-- If you need backtesting guarantees (use a backtesting framework)
+- If you need domain-specific risk management (use domain-specific APIs)
+- If you need state management (use a state manager)
+- If you need action lifecycle management (use an execution engine)
+- If you need regime detection (use a regime detector)
+- If you need simulation guarantees (use a simulation framework)
 
 DMC is designed to be **one component** in a larger system, not a complete solution.

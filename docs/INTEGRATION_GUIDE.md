@@ -1,62 +1,60 @@
-# Integration Guide
+# Integration Guide — decision-modulation-core
 
-## Importing Schema Types
+## Dependency
 
-**✅ Correct way** (recommended):
-
-```python
-from decision_schema.types import Proposal, FinalDecision, Action, MismatchInfo
-from decision_schema.packet_v2 import PacketV2
+Pin schema version:
+```toml
+dependencies = ["decision-schema>=0.1,<0.2"]
 ```
 
-**❌ Deprecated way** (will be removed in v1.0.0):
-
-```python
-from dmc_core.schema import Proposal, FinalDecision  # Re-exports, deprecated
-```
-
-## Using Proposal
-
-**✅ Domain-agnostic** (recommended):
+## Basic Usage
 
 ```python
 from decision_schema.types import Proposal, Action
+from dmc_core.dmc.modulator import modulate
+from dmc_core.dmc.risk_policy import RiskPolicy
 
+# Proposal from mdm-engine or other proposal generator
 proposal = Proposal(
     action=Action.ACT,
     confidence=0.8,
-    reasons=["signal"],
-    params={
-        "bid": 0.49,      # Generic key
-        "ask": 0.51,      # Generic key
-        "size": 1.0,      # Generic key
-        "post_only": True,
-    },
+    reasons=["signal_detected"],
+    params={"value": 100},
 )
+
+# Context from system/telemetry
+context = {
+    "now_ms": 1000,
+    "last_event_ts_ms": 950,
+    "error_count": 2,
+    "latency_ms": 50,
+    "current_total_exposure": 5.0,
+}
+
+# Risk policy (use defaults or configure)
+policy = RiskPolicy(
+    staleness_ms=1000,
+    max_error_rate=0.1,
+    max_total_exposure=10.0,
+)
+
+# Modulate
+final_decision, mismatch = modulate(proposal, policy, context)
+
+if mismatch.flags:
+    print(f"Guards triggered: {mismatch.flags}")
+    print(f"Reason codes: {mismatch.reason_codes}")
+    # Fail-closed: do not execute
+else:
+    print(f"Proposal approved: {final_decision.action}")
+    # Execute final_decision
 ```
 
-**❌ Legacy fields** (deprecated, will be removed in v1.0.0):
-
-```python
-proposal = Proposal(
-    action=Action.QUOTE,  # Deprecated alias
-    bid_quote=0.49,       # Deprecated field
-    ask_quote=0.51,       # Deprecated field
-    size_usd=1.0,         # Deprecated field
-)
-```
-
-## Ops-Health Integration
-
-DMC includes an **ops-health guard** that checks operational safety signals.
-
-### Basic Usage
+## Integration with ops-health-core
 
 ```python
 from ops_health_core.kill_switch import update_kill_switch
 from ops_health_core.model import OpsPolicy, OpsState
-from dmc_core.dmc.modulator import modulate
-from dmc_core.dmc.risk_policy import RiskPolicy
 
 # Update ops-health signal
 state = OpsState()
@@ -64,41 +62,19 @@ state = OpsState()
 signal = update_kill_switch(state, OpsPolicy(), now_ms)
 
 # Add to DMC context
-context = {
-    "now_ms": now_ms,
-    "error_count": 5,
-    "latency_ms": 100,
-    # ... other context ...
-}
-context.update(signal.to_context())  # Adds ops_deny_actions, ops_state, etc.
+context.update(signal.to_context())
 
-# DMC will check ops-health guard
-final_action, mismatch = modulate(proposal, RiskPolicy(), context)
-
-# If ops-health denies, final_action.action == Action.STOP
-if mismatch.flags and "ops_health" in mismatch.flags:
-    # Operational safety triggered
-    print(f"Ops-health denied: {mismatch.reason_codes}")
+# DMC will check ops-health guard automatically
+final_decision, mismatch = modulate(proposal, RiskPolicy(), context)
 ```
 
-### Ops-Health Guard Behavior
+## Guard Ordering
 
-The ops-health guard checks:
-- `ops_deny_actions`: If `True`, returns `STOP` with reason `ops_deny_actions`
-- `ops_state`: If `"RED"`, returns `STOP` with reason `ops_health_red`
-- `ops_cooldown_until_ms`: If in cooldown, returns `STOP` with reason `ops_cooldown_active`
+Guards are applied in deterministic order (fail-fast). First guard failure stops evaluation and returns fail-closed decision.
 
-**Guard order**: Ops-health guard runs **first** (before staleness, liquidity, etc.) to ensure operational safety.
+## Fail-Closed Behavior
 
-## Migration Checklist
-
-- [ ] Replace `Action.QUOTE` → `Action.ACT`
-- [ ] Replace `Action.FLATTEN` → `Action.EXIT`
-- [ ] Replace `Action.CANCEL_ALL` → `Action.CANCEL`
-- [ ] Replace direct fields (`bid_quote`, etc.) → `params` dict
-- [ ] Replace imports from `dmc_core.schema` → `decision_schema`
-- [ ] Update tests to use generic Action values and params dict
-- [ ] Integrate ops-health-core signals into DMC context
-- [ ] Replace "Market Decision Model" → "proposal generator" in documentation
-
-See `decision-schema/docs/DEPRECATION_PLAN.md` for detailed migration guide.
+On any exception or guard failure:
+- `final_decision.action` is set to `Action.HOLD` or `Action.STOP`
+- `mismatch.flags` contains failure reason codes
+- `PacketV2` includes guard evaluation trace
