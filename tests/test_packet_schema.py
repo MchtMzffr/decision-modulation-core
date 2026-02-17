@@ -1,7 +1,7 @@
 """Tests for PacketV2 schema."""
 
 import pytest
-from dmc_core.schema import PacketV2
+from decision_schema.packet_v2 import PacketV2
 
 
 def test_packet_v2_to_dict():

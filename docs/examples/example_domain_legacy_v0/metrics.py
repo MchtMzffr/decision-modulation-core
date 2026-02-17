@@ -1,4 +1,6 @@
-"""Max drawdown, returns, summary stats, adverse selection."""
+"""
+Legacy domain metrics — example only. Not part of core.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +10,6 @@ from typing import Any
 
 
 def _mid_at(ts_ms: int, mid_series: list[tuple[int, float]]) -> float:
-    """Mid price at or just before ts_ms (binary search). Expects mid_series sorted by ts_ms."""
     if not mid_series:
         return 0.0
     times = [t for t, _ in mid_series]
@@ -24,11 +25,6 @@ def adverse_selection_avg_ticks(
     horizon_ms: int,
     tick_size: float,
 ) -> float:
-    """
-    Weighted avg adverse move in ticks after fills.
-    BUY (long): adv_ticks = max(0, (fill_mid - mid_after) / tick).
-    SELL (short): adv_ticks = max(0, (mid_after - fill_mid) / tick).
-    """
     if not fill_records or tick_size <= 0:
         return 0.0
     eps = 1e-12
@@ -54,12 +50,6 @@ def adverse_selection_avg(
     step_mid: dict[int, float],
     horizon_steps: int = 15,
 ) -> float:
-    """
-    Average adverse move after fills: for each fill (step, side, mid_fill),
-    mid_later = step_mid.get(fill_step + horizon_steps, mid_fill).
-    Adverse = (mid_later - mid_fill) for ask (we lose if price rises),
-    (mid_fill - mid_later) for bid. Return mean absolute adverse.
-    """
     if not fill_records:
         return 0.0
     adverse: list[float] = []
@@ -76,7 +66,6 @@ def adverse_selection_avg(
 
 
 def max_drawdown(equity_curve: list[float]) -> float:
-    """Max drawdown from peak (as positive number = worst drop)."""
     if not equity_curve:
         return 0.0
     arr = np.array(equity_curve, dtype=float)
@@ -86,7 +75,6 @@ def max_drawdown(equity_curve: list[float]) -> float:
 
 
 def returns_from_equity_curve(equity_curve: list[float]) -> list[float]:
-    """Simple returns (e_t - e_{t-1})."""
     if len(equity_curve) < 2:
         return []
     arr = np.array(equity_curve, dtype=float)
@@ -101,7 +89,6 @@ def summary_stats(
     throttle_events: int = 0,
     error_count: int = 0,
 ) -> dict[str, Any]:
-    """Summary: final equity, max drawdown, counts, avg latency, ops stats."""
     final_equity = equity_curve[-1] if equity_curve else 0.0
     return {
         "final_equity": final_equity,

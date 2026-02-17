@@ -1,7 +1,7 @@
 """Tests for ops-health guard."""
 
-from dmc_core.dmc.guards import ops_health_guard
-from dmc_core.schema import Action, MismatchInfo, Proposal
+from dmc_core.dmc.guards_generic import ops_health_guard
+from decision_schema.types import Action, MismatchInfo, Proposal
 from dmc_core.dmc.modulator import modulate
 from dmc_core.dmc.policy import GuardPolicy
 

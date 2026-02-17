@@ -17,15 +17,17 @@ It is domain-agnostic and depends only on `decision-schema`.
 
 ## Integration
 
+**Core API:** `modulate(Proposal, GuardPolicy, context)`. Domain examples live only in `docs/examples/`.
+
 ```python
 from decision_schema.types import Proposal, FinalDecision, Action
 from dmc_core.dmc.modulator import modulate
-from dmc_core.dmc.risk_policy import RiskPolicy
+from dmc_core.dmc.policy import GuardPolicy
 
 proposal = Proposal(action=Action.ACT, confidence=0.8, ...)
-context = {"now_ms": 1000, "error_count": 0, ...}
+context = {"now_ms": 1000, "last_event_ts_ms": 950, "errors_in_window": 0, "steps_in_window": 10, ...}
 
-final_decision, mismatch = modulate(proposal, RiskPolicy(), context)
+final_decision, mismatch = modulate(proposal, GuardPolicy(), context)
 
 if mismatch.flags:
     # Guards triggered - fail-closed

@@ -26,16 +26,11 @@ from decision_schema.types import (
     Proposal,
 )
 
-# Aliases for backward compatibility (decision-schema 0.2 has no TradeProposal/FinalAction)
-FinalAction = FinalDecision
-TradeProposal = Proposal
-
+# Domain-free public surface only (INVARIANT 0). Legacy names not in __all__.
 __all__ = [
     "Action",
     "Proposal",
-    "TradeProposal",
     "FinalDecision",
-    "FinalAction",
     "MismatchInfo",
     "PacketV2",
 ]

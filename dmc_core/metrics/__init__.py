@@ -1,17 +1,5 @@
-"""Metrics: PnL, drawdown, summary stats, adverse selection."""
+"""Metrics: domain-agnostic only. Domain-specific metrics are in docs/examples."""
 
-from dmc_core.metrics.pnl_metrics import (
-    max_drawdown,
-    returns_from_equity_curve,
-    summary_stats,
-    adverse_selection_avg,
-    adverse_selection_avg_ticks,
-)
+# Core does not export domain metrics. See docs/examples/example_domain_legacy_v0/metrics.py for reference.
 
-__all__ = [
-    "max_drawdown",
-    "returns_from_equity_curve",
-    "summary_stats",
-    "adverse_selection_avg",
-    "adverse_selection_avg_ticks",
-]
+__all__: list[str] = []

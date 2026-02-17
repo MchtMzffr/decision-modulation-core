@@ -26,16 +26,12 @@ def test_schema_packet_import() -> None:
 
 
 def test_schema_compatibility() -> None:
-    """Verify schema version compatibility."""
+    """Verify schema version compatibility (0.2.x)."""
     assert is_compatible(__version__, expected_major=0) is True
 
 
-def test_backward_compat_aliases() -> None:
-    """Verify backward compatibility aliases work."""
-    from dmc_core.schema import TradeProposal, FinalAction
-    
-    # TradeProposal should be Proposal
-    assert TradeProposal is Proposal
-    
-    # FinalAction should be FinalDecision
-    assert FinalAction is FinalDecision
+def test_domain_free_compat_aliases() -> None:
+    """Verify domain-free compat aliases (ProposalLike, DecisionLike)."""
+    from dmc_core.compat import ProposalLike, DecisionLike
+    assert ProposalLike is Proposal
+    assert DecisionLike is FinalDecision

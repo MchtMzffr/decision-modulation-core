@@ -4,15 +4,17 @@
 
 Pin schema version:
 ```toml
-dependencies = ["decision-schema>=0.1,<0.2"]
+dependencies = ["decision-schema>=0.2,<0.3"]
 ```
 
 ## Basic Usage
 
+Core API is **domain-agnostic**. Use `GuardPolicy` and generic context keys.
+
 ```python
 from decision_schema.types import Proposal, Action
 from dmc_core.dmc.modulator import modulate
-from dmc_core.dmc.risk_policy import RiskPolicy
+from dmc_core.dmc.policy import GuardPolicy
 
 # Proposal from mdm-engine or other proposal generator
 proposal = Proposal(
@@ -22,20 +24,21 @@ proposal = Proposal(
     params={"value": 100},
 )
 
-# Context from system/telemetry
+# Context (generic keys): now_ms, last_event_ts_ms, ops_*, errors_in_window, steps_in_window, etc.
 context = {
     "now_ms": 1000,
     "last_event_ts_ms": 950,
-    "error_count": 2,
-    "latency_ms": 50,
-    "current_total_exposure": 5.0,
+    "errors_in_window": 0,
+    "steps_in_window": 100,
+    "rate_limit_events": 0,
+    "recent_failures": 0,
 }
 
-# Risk policy (use defaults or configure)
-policy = RiskPolicy(
-    staleness_ms=1000,
+# Guard policy (generic thresholds)
+policy = GuardPolicy(
+    staleness_ms=5000,
     max_error_rate=0.1,
-    max_total_exposure=10.0,
+    fail_closed_action=Action.HOLD,
 )
 
 # Modulate
@@ -65,7 +68,7 @@ signal = update_kill_switch(state, OpsPolicy(), now_ms)
 context.update(signal.to_context())
 
 # DMC will check ops-health guard automatically
-final_decision, mismatch = modulate(proposal, RiskPolicy(), context)
+final_decision, mismatch = modulate(proposal, GuardPolicy(), context)
 ```
 
 ## Guard Ordering
