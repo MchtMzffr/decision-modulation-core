@@ -17,7 +17,7 @@ It is domain-agnostic and depends only on `decision-schema`.
 
 ## Integration
 
-**Core API:** `modulate(Proposal, GuardPolicy, context)`. Domain examples live only in `docs/examples/`.
+**Core API:** `modulate(Proposal, GuardPolicy, context)`. Use **GuardPolicy** (domain-agnostic); `RiskPolicy` is legacy/example only (see `docs/examples/`).
 
 ```python
 from decision_schema.types import Proposal, FinalDecision, Action
@@ -51,7 +51,7 @@ pip install -e .
 
 Or from git:
 ```bash
-pip install git+https://github.com/MeetlyTR/decision-modulation-core.git
+pip install git+https://github.com/MchtMzffr/decision-modulation-core.git
 ```
 
 ## Tests

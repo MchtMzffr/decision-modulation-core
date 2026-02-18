@@ -81,3 +81,7 @@ On any exception or guard failure:
 - `final_decision.action` is set to `Action.HOLD` or `Action.STOP`
 - `mismatch.flags` contains failure reason codes
 - The integration layer should record guard evaluation results into `PacketV2.external` or context passed to the trace
+
+## Trace and PacketV2
+
+DMC core does **not** write to `PacketV2` itself. The integration layer (e.g. harness) records guard outcomes and context into `PacketV2.external` and/or context for downstream reporting.
