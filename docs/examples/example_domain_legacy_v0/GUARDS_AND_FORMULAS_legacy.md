@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Guards and Formulas
 
 This document describes each guard's formula, threshold, and triggered action.

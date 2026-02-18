@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """
 Legacy domain guards — example only. Not part of core.
 Import from decision_schema.types (domain-agnostic contract).

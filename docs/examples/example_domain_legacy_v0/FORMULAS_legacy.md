@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Formulas — decision-modulation-core
 
 Let P be a Proposal, and G = [g1, g2, ..., gn] be an ordered guard list.

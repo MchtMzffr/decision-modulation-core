@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """Ops-health guard: deny when ops layer denies or is in cooldown."""
 
 

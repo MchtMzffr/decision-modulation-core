@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Dependency Cleanup — numpy and pydantic Removal
 
 **Date:** 2026-02-17  

@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Parameter Index (SSOT)
 
 Complete reference for all DMC configuration parameters.

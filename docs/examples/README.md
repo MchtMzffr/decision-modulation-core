@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Example Domain Code — Do Not Use as Core API
 
 **These examples are for reference only.** They contain domain-specific logic (e.g. spread, liquidity, PnL) and are **not** part of the core package.

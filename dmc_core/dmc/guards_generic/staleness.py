@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """Staleness guard: fail when last event is too old."""
 
 

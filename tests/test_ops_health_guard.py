@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """Tests for ops-health guard."""
 
 from dmc_core.dmc.guards_generic import ops_health_guard

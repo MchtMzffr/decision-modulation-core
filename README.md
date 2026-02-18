@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # decision-modulation-core (Guards & Modulation)
 
 This core converts a `Proposal` into a `FinalDecision` by applying **deterministic, fail-closed guards**.

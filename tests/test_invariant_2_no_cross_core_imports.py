@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """
 INVARIANT 2: No cross-core imports.
 

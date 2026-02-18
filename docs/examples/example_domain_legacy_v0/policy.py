@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """
 Legacy RiskPolicy — example domain policy only. Not part of core.
 Core uses GuardPolicy (dmc_core.dmc.policy).

@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """DMC schema deprecation warning is driven by DMC version (minor >= 3), not schema version."""
 
 import warnings

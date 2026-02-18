@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """Generic DMC guards: pass/fail + reason code. Domain-agnostic."""
 
 from dmc_core.dmc.guards_generic.ops_health import ops_health_guard

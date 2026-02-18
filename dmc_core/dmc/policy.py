@@ -1,3 +1,6 @@
+# Decision Ecosystem — decision-modulation-core
+# Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+# SPDX-License-Identifier: MIT
 """Generic guard policy: domain-agnostic thresholds for DMC guards."""
 
 from dataclasses import dataclass

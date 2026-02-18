@@ -1,3 +1,8 @@
+<!--
+Decision Ecosystem — decision-modulation-core
+Copyright (c) 2026 Mücahit Muzaffer Karafil (MchtMzffr)
+SPDX-License-Identifier: MIT
+-->
 # Formulas — decision-modulation-core (domain-free)
 
 Guard evaluation and composition rules. All formulas use generic context keys only (no domain vocabulary).
@@ -21,3 +26,7 @@ Guards run in fixed order; first failure yields fail-closed and stops.
 ## Context keys (SSOT)
 
 See `decision-schema` PARAMETER_INDEX and repo `docs/INTEGRATION_GUIDE.md` for context key registry. Core does not write to PacketV2; the integration layer records guard results into `PacketV2.external` or context.
+
+## Optional future model (not implemented)
+
+A possible extension could define a **risk score** and **modulation factor**: `risk(d) = Σᵢ wᵢ·gᵢ(d)` with `gᵢ ∈ {0,1}` or [0,1], and `modulation(d) = 1 - risk(d)` with a threshold for fail-closed. The current implementation uses **ordered hard guards only** (no weights, no aggregate risk).
