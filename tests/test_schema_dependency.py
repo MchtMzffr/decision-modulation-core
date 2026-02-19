@@ -36,5 +36,6 @@ def test_schema_compatibility() -> None:
 def test_domain_free_compat_aliases() -> None:
     """Verify domain-free compat aliases (ProposalLike, DecisionLike)."""
     from dmc_core.compat import ProposalLike, DecisionLike
+
     assert ProposalLike is Proposal
     assert DecisionLike is FinalDecision

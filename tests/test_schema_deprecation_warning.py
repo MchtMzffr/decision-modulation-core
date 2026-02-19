@@ -5,14 +5,13 @@
 
 import warnings
 
-import pytest
-
 
 def test_schema_no_warning_on_dmc_010() -> None:
     """When DMC is 0.1.0, importing dmc_core.schema must not emit DeprecationWarning."""
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         import dmc_core.schema  # noqa: F401
+
         deprecations = [x for x in w if issubclass(x.category, DeprecationWarning)]
     assert not deprecations, "DMC 0.1.x should not emit schema deprecation warning"
 
@@ -30,7 +29,9 @@ def test_schema_warning_on_dmc_030() -> None:
             warnings.simplefilter("always")
             importlib.reload(schema_module)
         deprecations = [x for x in w if issubclass(x.category, DeprecationWarning)]
-        assert any("dmc_core.schema" in str(m.message) for m in deprecations), "DMC 0.3.x should emit schema deprecation"
+        assert any("dmc_core.schema" in str(m.message) for m in deprecations), (
+            "DMC 0.3.x should emit schema deprecation"
+        )
     finally:
         version_module.__version__ = original
         importlib.reload(schema_module)

@@ -4,21 +4,25 @@
 """Tests for ops-health guard."""
 
 from dmc_core.dmc.guards_generic import ops_health_guard
-from decision_schema.types import Action, MismatchInfo, Proposal
+from decision_schema.types import Action, Proposal
 from dmc_core.dmc.modulator import modulate
 from dmc_core.dmc.policy import GuardPolicy
 
 
 def test_ops_health_guard_deny_actions() -> None:
     """Verify guard fails when ops_deny_actions is True."""
-    ok, code = ops_health_guard(ops_deny_actions=True, ops_state=None, ops_cooldown_until_ms=None, now_ms=1000)
+    ok, code = ops_health_guard(
+        ops_deny_actions=True, ops_state=None, ops_cooldown_until_ms=None, now_ms=1000
+    )
     assert ok is False
     assert code == "ops_deny_actions"
 
 
 def test_ops_health_guard_red_state() -> None:
     """Verify guard fails when ops_state is RED."""
-    ok, code = ops_health_guard(ops_deny_actions=None, ops_state="RED", ops_cooldown_until_ms=None, now_ms=1000)
+    ok, code = ops_health_guard(
+        ops_deny_actions=None, ops_state="RED", ops_cooldown_until_ms=None, now_ms=1000
+    )
     assert ok is False
     assert code == "ops_health_red"
 
@@ -44,7 +48,10 @@ def test_ops_health_guard_cooldown_expired() -> None:
 def test_ops_health_guard_passes() -> None:
     """Verify guard passes when ops-health is healthy."""
     ok, code = ops_health_guard(
-        ops_deny_actions=False, ops_state="GREEN", ops_cooldown_until_ms=None, now_ms=1000
+        ops_deny_actions=False,
+        ops_state="GREEN",
+        ops_cooldown_until_ms=None,
+        now_ms=1000,
     )
     assert ok is True
     assert code == ""

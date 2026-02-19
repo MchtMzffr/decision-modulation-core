@@ -12,16 +12,34 @@ import re
 from pathlib import Path
 
 FORBIDDEN_TERMS = {
-    "trade", "trading", "trader",
-    "market", "marketplace",
-    "orderbook", "order-book",
-    "bid", "ask", "quote", "fill",
+    "trade",
+    "trading",
+    "trader",
+    "market",
+    "marketplace",
+    "orderbook",
+    "order-book",
+    "bid",
+    "ask",
+    "quote",
+    "fill",
     "exchange",
     "portfolio",
-    "pnl", "slippage", "microstructure", "requote", "post-only",
-    "drawdown", "take_profit", "stop_loss",
-    "spread", "liquidity", "inventory", "exposure",
-    "adverse_selection", "flatten", "cancel_all",
+    "pnl",
+    "slippage",
+    "microstructure",
+    "requote",
+    "post-only",
+    "drawdown",
+    "take_profit",
+    "stop_loss",
+    "spread",
+    "liquidity",
+    "inventory",
+    "exposure",
+    "adverse_selection",
+    "flatten",
+    "cancel_all",
 }
 
 PUBLIC_SURFACE_PATHS = [
@@ -51,7 +69,9 @@ def _find_files(repo_root: Path) -> list[Path]:
             for f in path.rglob("*"):
                 if f.is_file() and f.suffix in (".md", ".py", ".rst", ".txt"):
                     rel = str(f.relative_to(repo_root)).replace("\\", "/")
-                    if not any(re.search(p, rel, re.IGNORECASE) for p in EXCLUDE_PATTERNS):
+                    if not any(
+                        re.search(p, rel, re.IGNORECASE) for p in EXCLUDE_PATTERNS
+                    ):
                         files.append(f)
     return files
 
@@ -77,7 +97,10 @@ def test_invariant_0_domain_agnosticism() -> None:
     all_violations = []
     for f in files:
         for line_no, term, snippet in _check_file(f, repo_root):
-            all_violations.append((str(f.relative_to(repo_root)), line_no, term, snippet))
+            all_violations.append(
+                (str(f.relative_to(repo_root)), line_no, term, snippet)
+            )
     assert not all_violations, (
-        "INVARIANT 0 violated (domain terms in public surface): " + str(all_violations[:20])
+        "INVARIANT 0 violated (domain terms in public surface): "
+        + str(all_violations[:20])
     )

@@ -23,7 +23,7 @@ def live_execution_allowed(
     """
     Live execution requires: mode==live AND enable_live_flag AND required_env_vars AND not kill_switch.
     Otherwise fail closed.
-    
+
     Note: This function was previously named `live_trading_allowed`. The name has been changed
     to be domain-agnostic. `live_trading_allowed` is deprecated and will be removed in a future version.
     """
@@ -47,13 +47,16 @@ def live_trading_allowed(
 ) -> LiveGatingResult:
     """
     Deprecated: Use `live_execution_allowed` instead.
-    
+
     This function is kept for backward compatibility and will be removed in a future version.
     """
     import warnings
+
     warnings.warn(
         "live_trading_allowed is deprecated. Use live_execution_allowed instead.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
-    return live_execution_allowed(mode, enable_live_flag, required_env_vars_present, kill_switch_active)
+    return live_execution_allowed(
+        mode, enable_live_flag, required_env_vars_present, kill_switch_active
+    )

@@ -9,7 +9,6 @@ Import from decision_schema.types (domain-agnostic contract).
 from __future__ import annotations
 
 import math
-from decision_schema.types import Action, Proposal
 
 
 def staleness_guard(
@@ -120,7 +119,9 @@ def sigma_spike_guard(z: float, z_max: float) -> tuple[bool, str]:
     return True, ""
 
 
-def cost_guard(tp_ticks: float, cost_ticks: float, min_profit_ticks: float = 1.0) -> tuple[bool, str]:
+def cost_guard(
+    tp_ticks: float, cost_ticks: float, min_profit_ticks: float = 1.0
+) -> tuple[bool, str]:
     required_tp = math.ceil(cost_ticks + min_profit_ticks)
     if tp_ticks < required_tp:
         return False, "cost_insufficient"

@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 """Tests for PacketV2 schema."""
 
-import pytest
 from decision_schema.packet_v2 import PacketV2
 
 

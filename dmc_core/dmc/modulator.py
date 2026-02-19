@@ -16,7 +16,6 @@ from decision_schema.types import Action, FinalDecision, MismatchInfo, Proposal
 
 from dmc_core.dmc.policy import GuardPolicy
 from dmc_core.dmc.guards_generic import (
-    GUARD_ORDER,
     ops_health_guard,
     staleness_guard,
     error_rate_guard,

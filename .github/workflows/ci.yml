@@ -38,7 +38,13 @@ jobs:
           cache: pip
 
       - name: Install test tooling
-        run: pip install -U pip pytest build pytest-json-report || (sleep 15 && pip install -U pip pytest build pytest-json-report)
+        run: pip install -U pip pytest build pytest-json-report pytest-cov ruff || (sleep 15 && pip install -U pip pytest build pytest-json-report pytest-cov ruff)
+
+      - name: Ruff check
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
 
       - name: Install decision-schema (pinned, fallback to git)
         run: |
@@ -48,7 +54,7 @@ jobs:
         run: pip install -e .
 
       - name: Run tests
-        run: pytest tests/ -v --json-report --json-report-file=pytest-report.json
+        run: pytest tests/ -v --json-report --json-report-file=pytest-report.json --cov=. --cov-report=term-missing --no-cov-on-fail
 
       - name: Upload pytest report
         uses: actions/upload-artifact@v4
