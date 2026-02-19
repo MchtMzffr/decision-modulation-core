@@ -38,7 +38,8 @@ def test_invariant_ci_0_workflow_hygiene() -> None:
     for path in workflow_files:
         b = path.read_bytes()
         if b"\r" in b:
-            failures.append(f"{path}: contains CR bytes (count={b.count(b'\r')})")
+            cr_count = b.count(b"\r")
+            failures.append(f"{path}: contains CR bytes (count={cr_count})")
         lf = b.count(b"\n")
         if lf < MIN_EXPECTED_NEWLINES:
             failures.append(f"{path}: too few LF newlines (count={lf}); possible single-line YAML")
